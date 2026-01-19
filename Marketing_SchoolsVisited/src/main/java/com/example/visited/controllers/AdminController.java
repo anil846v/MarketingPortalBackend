@@ -1,6 +1,8 @@
 package com.example.visited.controllers;
 
 import com.example.visited.entitys.Modules;
+import org.springframework.http.MediaType; // For MULTIPART_FORM_DATA_VALUE
+import org.springframework.web.multipart.MultipartFile; // For @RequestPart
 import com.example.visited.entitys.User;
 import com.example.visited.services.AdmiService;
 import com.example.visited.services.MarketingService;
@@ -36,9 +38,9 @@ public class AdminController {
 
   
 
-    @PostMapping("/register-marketing-user")
+    @PostMapping(value ="/register-marketing-user" ,consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> registerMarketingUser(
-            @RequestBody Map<String, Object> userData,
+    		 @RequestPart("userData") Map<String, Object> userData,@RequestPart(value = "photo", required = false) MultipartFile photo,
             HttpServletRequest request) {
     	User user = (User) request.getAttribute("authenticatedUser");
         if (user == null) {
@@ -47,13 +49,17 @@ public class AdminController {
         if (user.getRole() != User.Role.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
         }
-
+        // ADD PHOTO TO userData (1 line!)
+        if (photo != null && !photo.isEmpty()) {
+            userData.put("photo", photo);
+        }
         User newUser = admiService.registerMarketingUser(userData);
 
-        return ResponseEntity.ok(Map.of(
+        return ResponseEntity.ok(Map.of( 
                 "message", newUser.getUsername() + " registered successfully",
                 "status", "approved"
         ));
+        
     }
 
     @GetMapping("/marketing-users")
@@ -74,17 +80,24 @@ public class AdminController {
         ));
     }
 
-    @PutMapping("/update-marketing-user/{userId}")
+    @PutMapping(value = "/update-marketing-user/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateMarketingUser(
             @PathVariable Integer userId,
-            @RequestBody Map<String, Object> userData,
-            HttpServletRequest request) {
-    	User user = (User) request.getAttribute("authenticatedUser");
+            @RequestPart("userData") Map<String, Object> userData,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
+            HttpServletRequest request
+    ) {
+        User user = (User) request.getAttribute("authenticatedUser");
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         if (user.getRole() != User.Role.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
+        }
+
+        // Optional: Add photo to userData map so service layer can handle it
+        if (photo != null && !photo.isEmpty()) {
+            userData.put("photo", photo);
         }
 
         User updated = admiService.updateMarketingUser(userId, userData);

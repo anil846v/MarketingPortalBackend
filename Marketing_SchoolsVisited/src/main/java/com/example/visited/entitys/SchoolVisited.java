@@ -67,6 +67,9 @@ public class SchoolVisited {
 	@Column(name = "custom_features_required", columnDefinition = "TEXT")
 	private String customFeaturesRequired;
 
+	@Column(name = "custom_feature_description")
+	private String customFeatureDescription;
+
 	@Column(name = "rfid_integration", length = 40)
 	private String rfidIntegration;
 
@@ -78,30 +81,25 @@ public class SchoolVisited {
 
 	@Column(name = "budget_range", precision = 12, scale = 2)
 	private BigDecimal budgetRange = BigDecimal.ZERO;
-	
+
 	@Column(name = "expected_go_live_date")
 	private LocalDate expectedGoLiveDate;
-	
+
 	@Column(name = "order_booking_date")
 	private LocalDate orderBookingDate;
-	
+
 	@Column(name = "initial_payment", precision = 12, scale = 2)
 	private BigDecimal initialPayment;
-	
+
 	@Column(name = "payment_terms", columnDefinition = "TEXT")
 	private String paymentTerms;
-	
+
 	@Column(name = "cost_per_member", precision = 10, scale = 2)
 	private BigDecimal costPerMember;
-	
+
 	@Column(name = "decision_maker_name", length = 50)
 	private String decisionMakerName;
 
-	
-
-	
-
-	
 	public LocalDate getExpectedGoLiveDate() {
 		return expectedGoLiveDate;
 	}
@@ -141,8 +139,6 @@ public class SchoolVisited {
 	public void setCostPerMember(BigDecimal costPerMember) {
 		this.costPerMember = costPerMember;
 	}
-
-	
 
 	@Column(name = "decision_timeline", columnDefinition = "TEXT")
 	private String decisionTimeline;
@@ -426,5 +422,13 @@ public class SchoolVisited {
 
 	public void setRejectionReason(String rejectionReason) {
 		this.rejectionReason = rejectionReason;
+	}
+
+	public String getCustomFeatureDescription() {
+		return customFeatureDescription;
+	}
+
+	public void setCustomFeatureDescription(String customFeatureDescription) {
+		this.customFeatureDescription = customFeatureDescription;
 	}
 }

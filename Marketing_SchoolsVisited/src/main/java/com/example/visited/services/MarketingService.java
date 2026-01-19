@@ -64,9 +64,15 @@ public class MarketingService {
     }
 
     public Map<String, Object> saveSchoolVisit(Map<String, Object> visitData, Integer userId) {
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID is required");
+    
+        User user = userRepository.findByUserId(userId);
+        if (user == null || user.getRole() != User.Role.MARKETING) {
+            throw new IllegalArgumentException("Marketing user not found");
         }
+        
+        // Get marketing team profile
+        MarketingTeam team = marketingTeamRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Marketing profile not found"));
         logger.info("Saving school visit for user: {}, school: {}", userId, visitData.get("schoolName"));
         // Create SchoolVisited entity
         SchoolVisited schoolVisit = new SchoolVisited();
@@ -76,11 +82,9 @@ public class MarketingService {
         
         // Basic school information
         schoolVisit.setSchoolName((String) visitData.get("schoolName"));
-        String visitedDateStr = (String) visitData.get("visitedDate");
-        if (visitedDateStr != null && !visitedDateStr.trim().isEmpty()) {
-            schoolVisit.setVisitedDate(LocalDate.parse(visitedDateStr));
-        }
-        schoolVisit.setMarketingExecutiveName((String) visitData.get("marketingExecutiveName"));
+        schoolVisit.setVisitedDate(LocalDate.now());
+
+        schoolVisit.setMarketingExecutiveName(team.getFullName());
         schoolVisit.setLocationCity((String) visitData.get("locationCity"));
         
         // Contact information
@@ -98,6 +102,7 @@ public class MarketingService {
         // Requirements
         schoolVisit.setDataMigrationRequired((String) visitData.get("dataMigrationRequired"));
         schoolVisit.setCustomFeaturesRequired((String) visitData.get("customFeaturesRequired"));
+        schoolVisit.setCustomFeatureDescription((String) visitData.get("customFeatureDescription"));
         schoolVisit.setRfidIntegration((String) visitData.get("rfidIntegration"));
         schoolVisit.setIdCards((String) visitData.get("idCards"));
         schoolVisit.setPaymentGatewayPreference((String) visitData.get("paymentGatewayPreference"));
@@ -173,10 +178,10 @@ public class MarketingService {
             throw new IllegalArgumentException("Cannot edit schoolName, visitedDate, or locationCity");
         }
         
-        // Update allowed fields
-        if (visitData.containsKey("marketingExecutiveName")) {
-            visit.setMarketingExecutiveName((String) visitData.get("marketingExecutiveName"));
-        }
+//        // Update allowed fields
+//        if (visitData.containsKey("marketingExecutiveName")) {
+//            visit.setMarketingExecutiveName((String) visitData.get("marketingExecutiveName"));
+//        }
         if (visitData.containsKey("contactPersonName")) {
             visit.setContactPersonName((String) visitData.get("contactPersonName"));
         }
@@ -206,6 +211,9 @@ public class MarketingService {
         }
         if (visitData.containsKey("customFeaturesRequired")) {
             visit.setCustomFeaturesRequired((String) visitData.get("customFeaturesRequired"));
+        }
+        if (visitData.containsKey("customFeatureDescription")) {
+            visit.setCustomFeaturesRequired((String) visitData.get("customFeatureDescription"));
         }
         if (visitData.containsKey("rfidIntegration")) {
             visit.setRfidIntegration((String) visitData.get("rfidIntegration"));
@@ -264,6 +272,8 @@ public class MarketingService {
             visitMap.put("marketingExecutiveName", visit.getMarketingExecutiveName());
             visitMap.put("locationCity", visit.getLocationCity());
             visitMap.put("contactPersonName", visit.getContactPersonName());
+            visitMap.put("decisionMakerName", visit.getDecisionMakerName());
+            visitMap.put("decisionTimeline", visit.getDecisionTimeline());
             visitMap.put("contactNo", visit.getContactNo());
             visitMap.put("emailId", visit.getEmailId());
             visitMap.put("schoolStrenght", visit.getSchoolStrenght());
@@ -274,21 +284,23 @@ public class MarketingService {
                 visitMap.put("orderBookingDate", visit.getOrderBookingDate());
                 visitMap.put("initialPayment", visit.getInitialPayment());
                 visitMap.put("paymentTerms", visit.getPaymentTerms());
+                
             }
             
-            visitMap.put("CurrentSystem", visit.getCurrentSystem());
-            visitMap.put("No Of Users ", visit.getNoOfUsers());
-            visitMap.put("Data Migration Required", visit.getDataMigrationRequired());
-            visitMap.put("Custom Features Required", visit.getCustomFeaturesRequired());
-            visitMap.put("RFID Integration", visit.getRfidIntegration());
-            visitMap.put("Id Cards", visit.getIdCards());
-            visitMap.put("Payment GateWay Preference", visit.getPaymentGatewayPreference());
-            visitMap.put("Budget Range", visit.getBudgetRange());
+            visitMap.put("currentSystem", visit.getCurrentSystem());
+            visitMap.put("noOfUsers", visit.getNoOfUsers());
+            visitMap.put("dataMigrationRequired", visit.getDataMigrationRequired());
+            visitMap.put("customFeaturesRequired", visit.getCustomFeaturesRequired());
+            visitMap.put("customFeatureDescription", visit.getCustomFeatureDescription());
+            visitMap.put("rfidIntegration", visit.getRfidIntegration());
+            visitMap.put("idCards", visit.getIdCards());
+            visitMap.put("paymentGatewayPreference", visit.getPaymentGatewayPreference());
+            visitMap.put("budgetRange", visit.getBudgetRange());
             visitMap.put("costPerMember", visit.getCostPerMember());
-            visitMap.put("Demo Required", visit.getDemoRequired());
-            visitMap.put("Demo Date", visit.getDemoDate());
-            visitMap.put("Proposal Sent", visit.getProposalSent());
-            visitMap.put("Proposal date", visit.getProposalDate());
+            visitMap.put("demoRequired", visit.getDemoRequired());
+            visitMap.put("demoDate", visit.getDemoDate());
+            visitMap.put("proposalSent", visit.getProposalSent());
+            visitMap.put("proposalDate", visit.getProposalDate());
             visitMap.put("status", visit.getStatus());
             if (visit.getStatus() == SchoolVisited.VisitStatus.REJECTED) {
                 visitMap.put("rejectionReason", visit.getRejectionReason());
@@ -339,6 +351,7 @@ public class MarketingService {
             visitMap.put("No Of Users ", visit.getNoOfUsers());
             visitMap.put("Data Migration Required", visit.getDataMigrationRequired());
             visitMap.put("Custom Features Required", visit.getCustomFeaturesRequired());
+            visitMap.put("Custom Features Description", visit.getCustomFeatureDescription());
             visitMap.put("RFID Integration", visit.getRfidIntegration());
             visitMap.put("Id Cards", visit.getIdCards());
             visitMap.put("Payment GateWay Preference", visit.getPaymentGatewayPreference());
@@ -509,6 +522,7 @@ public class MarketingService {
         
         // Personal info
         profile.put("userId", user.getUserId());
+        profile.put("profilePhotoPath", team.getProfilePhotoPath());
         profile.put("fullName", team.getFullName());
         profile.put("email", team.getEmail());
         profile.put("phoneNumber", team.getPhoneNumber());

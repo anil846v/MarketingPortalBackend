@@ -1,14 +1,22 @@
 package com.example.visited.services;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// AdmiService imports:
+import org.springframework.beans.factory.annotation.Value;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile; // For @RequestPart
 
 import com.example.visited.entitys.MarketingTeam;
 import com.example.visited.entitys.Modules;
@@ -17,11 +25,12 @@ import com.example.visited.repositories.MarketingTeamRepository;
 import com.example.visited.repositories.ModulesRepository;
 import com.example.visited.repositories.UserRepository;
 
-import org.springframework.transaction.annotation.Transactional;
-
 @Service
 @Transactional // ✅ Class-level for all CRUD
 public class AdmiService {
+
+	@Value("${app.upload.dir:./uploads/marketing}") // ← ADD THIS
+	private String uploadDir; // ← Make it instance variable
 
 	private static final Logger logger = LoggerFactory.getLogger(AdmiService.class);
 
@@ -60,6 +69,7 @@ public class AdmiService {
 				map.put("address", team.getAddress());
 				map.put("assignedRegion", team.getAssignedRegion());
 				map.put("targetDistricts", team.getTargetDistricts());
+				map.put("profilePhotoPath", team.getProfilePhotoPath());
 			}, () -> map.put("profile", "No profile found"));
 
 			result.add(map);
@@ -94,7 +104,7 @@ public class AdmiService {
 		team.setFullName((String) userData.get("fullName"));
 		team.setPhoneNumber((String) userData.get("phoneNumber"));
 		team.setEmail(email);
-		
+
 		// Handle age conversion
 		Object ageObj = userData.get("age");
 		if (ageObj instanceof Integer) {
@@ -102,14 +112,52 @@ public class AdmiService {
 		} else if (ageObj instanceof String) {
 			team.setAge(Integer.parseInt((String) ageObj));
 		}
-		
+
 		team.setAddress((String) userData.get("address"));
 		team.setAssignedRegion((String) userData.get("assignedRegion"));
 		team.setTargetDistricts((String) userData.get("targetDistricts"));
+		// 🔥 NEW: PHOTO UPLOAD (20 lines max)
+		// 🔥 FIXED PHOTO UPLOAD
+		MultipartFile photo = (MultipartFile) userData.get("photo");
+		if (photo != null && !photo.isEmpty()) {
+			// Security + Validation
+			if (photo.getSize() > 5 * 1024 * 1024) { // 5MB
+				throw new IllegalArgumentException("Photo too large (max 5MB)");
+			}
+			if (!isImageFile(photo)) {
+				throw new IllegalArgumentException("Only JPG/PNG allowed");
+			}
+
+			try {
+				// ✅ FIXED: Create directory + filename + save
+				Files.createDirectories(Paths.get(uploadDir));
+				String filename = saved.getUserId() + "_" + System.currentTimeMillis()
+						+ getFileExtension(photo.getOriginalFilename());
+				Path filePath = Paths.get(uploadDir, filename); // ✅ Now filename exists
+				photo.transferTo(filePath);
+				team.setProfilePhotoPath("/uploads/marketing/" + filename);
+				System.out.println("Saving photo to: " + filePath.toAbsolutePath());
+
+			} catch (Exception e) {
+				logger.error("Photo upload failed for user: {}", email, e);
+				throw new RuntimeException("Photo upload failed", e);
+			}
+		}
 
 		marketingTeamRepository.save(team);
 
 		return saved;
+	}
+
+	// Add these helper methods to AdmiService
+	private boolean isImageFile(MultipartFile file) {
+		String contentType = file.getContentType();
+		return contentType != null && (contentType.equals("image/jpeg") || contentType.equals("image/png")
+				|| contentType.equals("image/jpg") || contentType.equals("image/webp"));
+	}
+
+	private String getFileExtension(String filename) {
+		return filename != null && filename.contains(".") ? filename.substring(filename.lastIndexOf('.')) : ".jpg";
 	}
 
 	@Transactional
@@ -168,7 +216,37 @@ public class AdmiService {
 				team.setAssignedRegion((String) userData.get("assignedRegion"));
 			if (userData.containsKey("targetDistricts"))
 				team.setTargetDistricts((String) userData.get("targetDistricts"));
+			// --- PHOTO UPLOAD ---
+			// 1️⃣ Get existing photo path
+			String oldPhotoPath = team.getProfilePhotoPath();
 
+			if (oldPhotoPath != null) {
+				try {
+					Path oldFile = Paths.get(uploadDir, oldPhotoPath.replace("/uploads/marketing/", ""));
+					Files.deleteIfExists(oldFile);
+				} catch (Exception e) {
+					logger.warn("Could not delete old photo for user {}", team.getEmail(), e);
+				}
+			}
+			MultipartFile photo = (MultipartFile) userData.get("photo");
+			if (photo != null && !photo.isEmpty()) {
+				if (photo.getSize() > 5 * 1024 * 1024)
+					throw new IllegalArgumentException("Photo too large (max 5MB)");
+				if (!isImageFile(photo))
+					throw new IllegalArgumentException("Only JPG/PNG allowed");
+
+				try {
+					Files.createDirectories(Paths.get(uploadDir));
+					String filename = userId + "_" + System.currentTimeMillis()
+							+ getFileExtension(photo.getOriginalFilename());
+					Path filePath = Paths.get(uploadDir, filename);
+					photo.transferTo(filePath);
+					team.setProfilePhotoPath("/uploads/marketing/" + filename);
+				} catch (Exception e) {
+					logger.error("Photo upload failed for user: {}", team.getEmail(), e);
+					throw new RuntimeException("Photo upload failed", e);
+				}
+			}
 			marketingTeamRepository.save(team);
 		});
 
@@ -182,8 +260,24 @@ public class AdmiService {
 			throw new IllegalArgumentException("Marketing user not found");
 		}
 
-		marketingTeamRepository.findByUserId(userId).ifPresent(team -> marketingTeamRepository.delete(team));
+		marketingTeamRepository.findByUserId(userId).ifPresent(team -> {
 
+			// 1️⃣ Delete photo from disk if exists
+			String photoPath = team.getProfilePhotoPath();
+
+			if (photoPath != null) {
+				try {
+					Path filePath = Paths.get(uploadDir, photoPath.replace("/uploads/marketing/", ""));
+					Files.deleteIfExists(filePath);
+					logger.info("Deleted profile photo for user {}", team.getEmail());
+				} catch (Exception e) {
+					logger.warn("Could not delete photo for user {}", team.getEmail(), e);
+				}
+			}
+
+			// 2️⃣ Delete marketing team record
+			marketingTeamRepository.delete(team);
+		});
 		userRepository.delete(user);
 	}
 
@@ -199,18 +293,18 @@ public class AdmiService {
 		if (moduleName == null || moduleName.trim().isEmpty()) {
 			throw new IllegalArgumentException("Module name is required");
 		}
-		
+
 		Modules module = new Modules();
 		module.setModuleName(moduleName.trim());
 		module.setDescription((String) moduleData.get("description"));
-		
+
 		Object isActiveObj = moduleData.get("isActive");
 		if (isActiveObj instanceof Boolean) {
 			module.setIsActive((Boolean) isActiveObj);
 		} else {
 			module.setIsActive(true); // Default to active
 		}
-		
+
 		return modulesRepository.save(module);
 	}
 
@@ -256,12 +350,12 @@ public class AdmiService {
 		if (userId == null) {
 			throw new IllegalArgumentException("User ID is required");
 		}
-		
+
 		User admin = userRepository.findByUserId(userId);
 		if (admin == null || admin.getRole() != User.Role.ADMIN) {
 			throw new IllegalArgumentException("Admin user not found");
 		}
-		
+
 		Map<String, Object> profile = new HashMap<>();
 		profile.put("userId", admin.getUserId());
 		profile.put("username", admin.getUsername());
@@ -270,7 +364,9 @@ public class AdmiService {
 		profile.put("gender", admin.getGender() != null ? admin.getGender().name() : null);
 		profile.put("createdAt", admin.getCreatedAt());
 		profile.put("updatedAt", admin.getUpdatedAt());
-		
+		marketingTeamRepository.findByUserId(userId)
+				.ifPresent(team -> profile.put("profilePhotoPath", team.getProfilePhotoPath()));
+
 		logger.debug("Admin profile fetched for user: {}", userId);
 		return profile;
 	}
@@ -280,12 +376,12 @@ public class AdmiService {
 		if (userId == null) {
 			throw new IllegalArgumentException("User ID is required");
 		}
-		
+
 		User admin = userRepository.findByUserId(userId);
 		if (admin == null || admin.getRole() != User.Role.ADMIN) {
 			throw new IllegalArgumentException("Admin user not found");
 		}
-		
+
 		// Validate and update username/email
 		if (profileData.containsKey("username")) {
 			String newUsername = ((String) profileData.get("username")).trim();
@@ -300,7 +396,7 @@ public class AdmiService {
 				admin.setUsername(newUsername);
 			}
 		}
-		
+
 		// Update password if provided
 		if (profileData.containsKey("password")) {
 			String newPassword = (String) profileData.get("password");
@@ -309,7 +405,7 @@ public class AdmiService {
 			}
 			admin.setPasswordHash(passwordEncoder.encode(newPassword));
 		}
-		
+
 		// Update gender if provided
 		if (profileData.containsKey("gender")) {
 			String genderStr = (String) profileData.get("gender");
@@ -321,14 +417,38 @@ public class AdmiService {
 				}
 			}
 		}
-		
+
+		// --- PHOTO UPLOAD ---
+		MultipartFile photo = (MultipartFile) profileData.get("photo");
+		if (photo != null && !photo.isEmpty()) {
+			if (photo.getSize() > 5 * 1024 * 1024)
+				throw new IllegalArgumentException("Photo too large (max 5MB)");
+			if (!isImageFile(photo))
+				throw new IllegalArgumentException("Only JPG/PNG allowed");
+
+			try {
+				Files.createDirectories(Paths.get(uploadDir));
+				String filename = userId + "_" + System.currentTimeMillis()
+						+ getFileExtension(photo.getOriginalFilename());
+				Path filePath = Paths.get(uploadDir, filename);
+				photo.transferTo(filePath);
+
+				// Save profile photo path
+				marketingTeamRepository.findByUserId(userId).ifPresent(team -> {
+					team.setProfilePhotoPath("/uploads/marketing/" + filename);
+					marketingTeamRepository.save(team);
+				});
+
+			} catch (Exception e) {
+				logger.error("Admin photo upload failed for user: {}", admin.getUsername(), e);
+				throw new RuntimeException("Photo upload failed", e);
+			}
+		}
+
 		User updatedAdmin = userRepository.save(admin);
 		logger.info("Admin profile updated for user: {}", userId);
-		
-		return Map.of(
-			"message", "Profile updated successfully",
-			"userId", updatedAdmin.getUserId(),
-			"username", updatedAdmin.getUsername()
-		);
+
+		return Map.of("message", "Profile updated successfully", "userId", updatedAdmin.getUserId(), "username",
+				updatedAdmin.getUsername());
 	}
 }
