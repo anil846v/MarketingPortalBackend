@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 @Component
-@WebFilter(urlPatterns = {"/api/*", "/admin/*"})
+@WebFilter(urlPatterns = {"/api/*", "/admin/*","/auth/*"})
 public class AuthenticationFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationFilter.class);
@@ -42,6 +42,7 @@ public class AuthenticationFilter implements Filter {
 
     private static final String[] PUBLIC_PATHS = {
         "/auth/login"
+    		
         // add more public endpoints if needed: register, forgot-password, etc.
     };
 

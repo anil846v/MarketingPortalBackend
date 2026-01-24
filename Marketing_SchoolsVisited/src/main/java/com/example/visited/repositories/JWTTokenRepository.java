@@ -12,19 +12,21 @@ import com.example.visited.entitys.User;
 
 @Repository
 public interface JWTTokenRepository extends JpaRepository<JWT, Integer> {
-	Optional<JWT> findByToken(String token);
-	JWT findByUser(User user);
-	JWT findByUserId(Integer userId);
-	
-	@Transactional
-	@Modifying
-	void deleteByUser(User user);
-	
-	@Transactional
-	@Modifying
-	void deleteByUserId(Integer userId);
-	}
+	 Optional<JWT> findByToken(String token);
 
+	    JWT findByUser(User user);
+
+	    // Corrected version using actual field name
+	    JWT findByUser_UserId(Integer userId);
+
+	    @Transactional
+	    @Modifying
+	    void deleteByUser(User user);
+
+	    @Transactional
+	    @Modifying
+	    void deleteByUser_UserId(Integer userId);
+}
 
 ////Wrong field names (must match entity fields)
 //findByuserName  // ❌ Must be findByUsername (camelCase)

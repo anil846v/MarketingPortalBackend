@@ -61,6 +61,30 @@ public class AdminController {
         ));
         
     }
+    @PutMapping("/schoolVisits/{id}")
+    public ResponseEntity<Map<String, Object>> updateSchoolVisitAsAdmin(
+            @PathVariable("id") Integer visitId,
+            @RequestBody Map<String, Object> visitData) {
+
+        Map<String, Object> result = marketingService.adminUpdateSchoolVisit(visitId, visitData);
+        return ResponseEntity.ok(result);
+    }
+    @PostMapping("/school-visit")
+    public ResponseEntity<?> submitSchoolVisit(@RequestBody Map<String, Object> visitData, HttpServletRequest request) {
+        try {
+            User user = (User) request.getAttribute("authenticatedUser");
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+            }
+            Map<String, Object> result = marketingService.saveSchoolVisit(visitData, user.getUserId());
+            logger.info("School visit saved successfully: {}", result.get("schoolVisitId"));
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Failed to save school visit", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to save school visit"));
+        }
+    }
 
     @GetMapping("/marketing-users")
     public ResponseEntity<?> getAllMarketingUsers(HttpServletRequest request) {
@@ -382,7 +406,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/school-visits/{visitId}")
-    public ResponseEntity<?> deleteRejectedSchoolVisit(
+    public ResponseEntity<?> deleteSchoolVisit(
             @PathVariable Integer visitId,
             HttpServletRequest request) {
         try {
@@ -394,8 +418,8 @@ public class AdminController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin role required"));
             }
             
-            marketingService.deleteRejectedSchoolVisit(visitId);
-            return ResponseEntity.ok(Map.of("message", "Rejected school visit deleted successfully"));
+            marketingService.deleteschoolVisit(visitId);
+            return ResponseEntity.ok(Map.of("message", " school visit deleted successfully"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

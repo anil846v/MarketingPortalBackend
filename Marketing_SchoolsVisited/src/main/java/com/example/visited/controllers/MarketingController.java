@@ -62,9 +62,9 @@ public class MarketingController {
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
             }
-            if (user.getRole() != User.Role.MARKETING) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
-            }
+//            if (user.getRole() != User.Role.MARKETING) {
+//                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
+//            }
             Map<String, Object> result = marketingService.saveSchoolVisit(visitData, user.getUserId());
             logger.info("School visit saved successfully: {}", result.get("schoolVisitId"));
             return ResponseEntity.ok(result);

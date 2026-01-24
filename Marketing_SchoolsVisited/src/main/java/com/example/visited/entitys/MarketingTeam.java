@@ -32,8 +32,8 @@ public class MarketingTeam {
 	@Column(nullable = false, columnDefinition = "TEXT")
 	private String address;
 
-	@Enumerated(EnumType.STRING)
-	private Gender gender;
+//	@Enumerated(EnumType.STRING)
+//	private Gender gender;
 
 	@Column(length = 100)
 	private String designation;
@@ -53,9 +53,9 @@ public class MarketingTeam {
 	@Column(name = "profile_photo_path", length = 500)
 	private String profilePhotoPath; // Add this line
 
-	public enum Gender {
-		Male, Female, Other
-	}
+//	public enum Gender {
+//		Male, Female, Other
+//	}
 
 	@PrePersist
 	protected void onCreate() {
@@ -125,13 +125,13 @@ public class MarketingTeam {
 		this.address = address;
 	}
 
-	public Gender getGender() {
-		return gender;
-	}
-
-	public void setGender(Gender gender) {
-		this.gender = gender;
-	}
+//	public Gender getGender() {
+//		return gender;
+//	}
+//
+//	public void setGender(Gender gender) {
+//		this.gender = gender;
+//	}
 
 	public String getDesignation() {
 		return designation;

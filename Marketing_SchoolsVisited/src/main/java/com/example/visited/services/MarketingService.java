@@ -11,15 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.example.visited.entitys.SchoolVisited;
+import com.example.visited.entitys.MarketingTeam;
 import com.example.visited.entitys.Modules;
 import com.example.visited.entitys.SchoolModuleRequired;
-import com.example.visited.entitys.MarketingTeam;
+import com.example.visited.entitys.SchoolVisited;
 import com.example.visited.entitys.User;
-import com.example.visited.repositories.SchoolsVisitedRepository;
+import com.example.visited.repositories.MarketingTeamRepository;
 import com.example.visited.repositories.ModulesRepository;
 import com.example.visited.repositories.SchoolModuleRequiredRepository;
-import com.example.visited.repositories.MarketingTeamRepository;
+import com.example.visited.repositories.SchoolsVisitedRepository;
 import com.example.visited.repositories.UserRepository;
 
 import jakarta.transaction.Transactional;
@@ -66,8 +66,8 @@ public class MarketingService {
     public Map<String, Object> saveSchoolVisit(Map<String, Object> visitData, Integer userId) {
     
         User user = userRepository.findByUserId(userId);
-        if (user == null || user.getRole() != User.Role.MARKETING) {
-            throw new IllegalArgumentException("Marketing user not found");
+        if (user == null || user.getRole() != User.Role.MARKETING && user.getRole() != User.Role.ADMIN) {
+            throw new IllegalArgumentException("Marketing or ADMIN role not found");
         }
         
         // Get marketing team profile
@@ -83,7 +83,12 @@ public class MarketingService {
         // Basic school information
         schoolVisit.setSchoolName((String) visitData.get("schoolName"));
         schoolVisit.setVisitedDate(LocalDate.now());
-
+        if(user.getRole() == User.Role.ADMIN) {
+        	schoolVisit.setMarketingExecutiveName("ADMIN");
+        	
+        }else {
+        	schoolVisit.setMarketingExecutiveName(team.getFullName());
+        }
         schoolVisit.setMarketingExecutiveName(team.getFullName());
         schoolVisit.setLocationCity((String) visitData.get("locationCity"));
         
@@ -111,9 +116,11 @@ public class MarketingService {
         if (visitData.get("budgetRange") != null) {
             schoolVisit.setBudgetRange(new BigDecimal(visitData.get("budgetRange").toString()));
         }
+        schoolVisit.setCostPerMember(new BigDecimal(visitData.get("costPerMember").toString()));
+
         
      // Line ~81 - Expected Go-Live Date  
-        String expectedGoLiveStr = (String) visitData.get("expected_goLive_date");
+        String expectedGoLiveStr = (String) visitData.get("expectedGoLiveDate");
         if (expectedGoLiveStr != null && !expectedGoLiveStr.trim().isEmpty()) {
         	// New (after entity rename)
         	schoolVisit.setExpectedGoLiveDate(LocalDate.parse(expectedGoLiveStr));        }
@@ -185,6 +192,7 @@ public class MarketingService {
         if (visitData.containsKey("contactPersonName")) {
             visit.setContactPersonName((String) visitData.get("contactPersonName"));
         }
+        
         if (visitData.containsKey("designation")) {
             visit.setDesignation((String) visitData.get("designation"));
         }
@@ -272,7 +280,9 @@ public class MarketingService {
             visitMap.put("marketingExecutiveName", visit.getMarketingExecutiveName());
             visitMap.put("locationCity", visit.getLocationCity());
             visitMap.put("contactPersonName", visit.getContactPersonName());
+            visitMap.put("designation", visit.getDesignation());
             visitMap.put("decisionMakerName", visit.getDecisionMakerName());
+            visitMap.put("boards", visit.getBoards());
             visitMap.put("decisionTimeline", visit.getDecisionTimeline());
             visitMap.put("contactNo", visit.getContactNo());
             visitMap.put("emailId", visit.getEmailId());
@@ -340,27 +350,32 @@ public class MarketingService {
             visitMap.put("locationCity", visit.getLocationCity());
             visitMap.put("contactPersonName", visit.getContactPersonName());
             visitMap.put("contactNo", visit.getContactNo());
+            visitMap.put("designation", visit.getDesignation());
             visitMap.put("emailId", visit.getEmailId());
             visitMap.put("schoolStrenght", visit.getSchoolStrenght());
+            visitMap.put("decisionMakerName",visit.getDecisionMakerName());
+            visitMap.put("decisionTimeline",visit.getDecisionTimeline());
             visitMap.put("expectedGoLiveDate", visit.getExpectedGoLiveDate());
             visitMap.put("orderBookingDate", visit.getOrderBookingDate());
             visitMap.put("initialPayment", visit.getInitialPayment());
             visitMap.put("paymentTerms", visit.getPaymentTerms());
             visitMap.put("costPerMember", visit.getCostPerMember());
-            visitMap.put("CurrentSystem", visit.getCurrentSystem());
-            visitMap.put("No Of Users ", visit.getNoOfUsers());
-            visitMap.put("Data Migration Required", visit.getDataMigrationRequired());
-            visitMap.put("Custom Features Required", visit.getCustomFeaturesRequired());
-            visitMap.put("Custom Features Description", visit.getCustomFeatureDescription());
-            visitMap.put("RFID Integration", visit.getRfidIntegration());
-            visitMap.put("Id Cards", visit.getIdCards());
-            visitMap.put("Payment GateWay Preference", visit.getPaymentGatewayPreference());
-            visitMap.put("Budget Range", visit.getBudgetRange());
-            visitMap.put("Demo Required", visit.getDemoRequired());
-            visitMap.put("Demo Date", visit.getDemoDate());
-            visitMap.put("Proposal Sent", visit.getProposalSent());
-            visitMap.put("Proposal date", visit.getProposalDate());
+            visitMap.put("currentSystem", visit.getCurrentSystem());
+            visitMap.put("noOfUsers", visit.getNoOfUsers());
+            visitMap.put("dataMigrationRequired", visit.getDataMigrationRequired());
+            visitMap.put("customFeaturesRequired", visit.getCustomFeaturesRequired());
+            visitMap.put("customFeatureDescription", visit.getCustomFeatureDescription());
+            visitMap.put("rfidIntegration", visit.getRfidIntegration());
+            visitMap.put("idCards", visit.getIdCards());
+            visitMap.put("paymentGatewayPreference", visit.getPaymentGatewayPreference());
+            visitMap.put("budgetRange", visit.getBudgetRange());
+            visitMap.put("costPerMember", visit.getCostPerMember());
+            visitMap.put("demoRequired", visit.getDemoRequired());
+            visitMap.put("demoDate", visit.getDemoDate());
+            visitMap.put("proposalSent", visit.getProposalSent());
+            visitMap.put("proposalDate", visit.getProposalDate());
             visitMap.put("status", visit.getStatus());
+            visitMap.put("rejectedreason", visit.getRejectionReason());
             if (visit.getStatus() == SchoolVisited.VisitStatus.REJECTED) {
                 visitMap.put("rejectionReason", visit.getRejectionReason());
             }
@@ -384,6 +399,147 @@ public class MarketingService {
         
         return visitList;
     }
+    public Map<String, Object> adminUpdateSchoolVisit(Integer visitId, Map<String, Object> visitData) {
+        SchoolVisited visit = schoolVisitedRepository.findById(visitId)
+                .orElseThrow(() -> new IllegalArgumentException("School visit not found"));
+
+        // Update basic/editable fields (based on getAllSchoolVisitsForAdmin)
+        if (visitData.containsKey("schoolName")) {
+            visit.setSchoolName((String) visitData.get("schoolName"));
+        }
+        if (visitData.containsKey("visitedDate") && visitData.get("visitedDate") != null) {
+            visit.setVisitedDate(LocalDate.parse((String) visitData.get("visitedDate")));
+        }
+        if (visitData.containsKey("marketingExecutiveName")) {
+            visit.setMarketingExecutiveName((String) visitData.get("marketingExecutiveName"));
+        }
+        if (visitData.containsKey("locationCity")) {
+            visit.setLocationCity((String) visitData.get("locationCity"));
+        }
+
+        if (visitData.containsKey("contactPersonName")) {
+            visit.setContactPersonName((String) visitData.get("contactPersonName"));
+        }
+        if (visitData.containsKey("contactNo")) {
+            visit.setContactNo((String) visitData.get("contactNo"));
+        }
+        if (visitData.containsKey("emailId")) {
+            visit.setEmailId((String) visitData.get("emailId"));
+        }
+        if (visitData.containsKey("designation")) {
+            visit.setDesignation((String) visitData.get("designation"));
+        }
+
+        if (visitData.containsKey("schoolStrenght")) {
+            visit.setSchoolStrenght((Integer) visitData.get("schoolStrenght"));
+        }
+        if (visitData.containsKey("expectedGoLiveDate") && visitData.get("expectedGoLiveDate") != null) {
+            visit.setExpectedGoLiveDate(LocalDate.parse((String) visitData.get("expectedGoLiveDate")));
+        }
+        if (visitData.containsKey("orderBookingDate") && visitData.get("orderBookingDate") != null) {
+            visit.setOrderBookingDate(LocalDate.parse((String) visitData.get("orderBookingDate")));
+        }
+        if (visitData.containsKey("initialPayment") && visitData.get("initialPayment") != null) {
+            visit.setInitialPayment(new BigDecimal(visitData.get("initialPayment").toString()));
+        }
+        if (visitData.containsKey("paymentTerms")) {
+            visit.setPaymentTerms((String) visitData.get("paymentTerms"));
+        }
+        if (visitData.containsKey("costPerMember") && visitData.get("costPerMember") != null) {
+            visit.setCostPerMember(new BigDecimal(visitData.get("costPerMember").toString()));
+        }
+        if (visitData.containsKey("currentSystem")) {
+            visit.setCurrentSystem((String) visitData.get("currentSystem"));
+        }
+        if (visitData.containsKey("noOfUsers")) {
+            visit.setNoOfUsers((Integer) visitData.get("noOfUsers"));
+        }
+        if (visitData.containsKey("dataMigrationRequired")) {
+            visit.setDataMigrationRequired((String) visitData.get("dataMigrationRequired"));
+        }
+        if (visitData.containsKey("customFeaturesRequired")) {
+            visit.setCustomFeaturesRequired((String) visitData.get("customFeaturesRequired"));
+        }
+        if (visitData.containsKey("customFeatureDescription")) {
+            visit.setCustomFeatureDescription((String) visitData.get("customFeatureDescription"));
+        }
+        if (visitData.containsKey("rfidIntegration")) {
+            visit.setRfidIntegration((String) visitData.get("rfidIntegration"));
+        }
+        if (visitData.containsKey("idCards")) {
+            visit.setIdCards((String) visitData.get("idCards"));
+        }
+        if (visitData.containsKey("paymentGatewayPreference")) {
+            visit.setPaymentGatewayPreference((String) visitData.get("paymentGatewayPreference"));
+        }
+        if (visitData.containsKey("budgetRange") && visitData.get("budgetRange") != null) {
+            visit.setBudgetRange(new BigDecimal(visitData.get("budgetRange").toString()));
+        }
+        if (visitData.containsKey("demoRequired")) {
+            visit.setDemoRequired((String) visitData.get("demoRequired"));
+        }
+        if (visitData.containsKey("demoDate") && visitData.get("demoDate") != null) {
+            visit.setDemoDate(LocalDate.parse((String) visitData.get("demoDate")));
+        }
+        if (visitData.containsKey("proposalSent")) {
+            visit.setProposalSent((String) visitData.get("proposalSent"));
+        }
+        if (visitData.containsKey("proposalDate") && visitData.get("proposalDate") != null) {
+            visit.setProposalDate(LocalDate.parse((String) visitData.get("proposalDate")));
+        }
+
+        if (visitData.containsKey("decisionMakerName")) {
+            visit.setDecisionMakerName((String) visitData.get("decisionMakerName"));
+        }
+        if (visitData.containsKey("decisionTimeline")) {
+            visit.setDecisionTimeline((String) visitData.get("decisionTimeline"));
+        }
+
+        // Status handling (admin can set any status)
+        if (visitData.containsKey("status") && visitData.get("status") != null) {
+            String statusStr = ((String) visitData.get("status")).toUpperCase();
+            SchoolVisited.VisitStatus newStatus = SchoolVisited.VisitStatus.valueOf(statusStr);
+
+            if (newStatus == SchoolVisited.VisitStatus.REJECTED) {
+                String rejectionReason = (String) visitData.get("rejectionReason");
+                if (rejectionReason == null || rejectionReason.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Rejection reason is required when rejecting a visit");
+                }
+                visit.setRejectionReason(rejectionReason.trim());
+            } else {
+                // clear rejection reason if moving away from REJECTED
+                visit.setRejectionReason(null);
+            }
+
+            visit.setStatus(newStatus);
+            if (newStatus == SchoolVisited.VisitStatus.ACCEPTED) {
+                // If admin provides orderBookingDate use it; otherwise set now
+                if (visit.getOrderBookingDate() == null) {
+                    visit.setOrderBookingDate(LocalDate.now());
+                }
+                if (visitData.containsKey("initialPayment") && visitData.get("initialPayment") != null) {
+                    visit.setInitialPayment(new BigDecimal(visitData.get("initialPayment").toString()));
+                }
+                if (visitData.containsKey("paymentTerms")) {
+                    visit.setPaymentTerms((String) visitData.get("paymentTerms"));
+                }
+                if (visitData.containsKey("costPerMember") && visitData.get("costPerMember") != null) {
+                    visit.setCostPerMember(new BigDecimal(visitData.get("costPerMember").toString()));
+                }
+            }
+        }
+       
+         // Persist visit
+            schoolVisitedRepository.save(visit);
+            logger.info("Admin updated school visit: {}", visitId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "School visit updated by admin successfully");
+            response.put("visitId", visitId);
+            response.put("status", visit.getStatus() != null ? visit.getStatus().name() : null);
+            return response;
+        }
+    
 
     public List<Map<String, Object>> getAcceptedOrders() {
         List<SchoolVisited> acceptedVisits = schoolVisitedRepository.findByStatus(SchoolVisited.VisitStatus.ACCEPTED);
@@ -394,17 +550,28 @@ public class MarketingService {
             Map<String, Object> orderMap = new HashMap<>();
             orderMap.put("id", visit.getId());
             orderMap.put("schoolName", visit.getSchoolName());
+            orderMap.put("visitedDate", visit.getVisitedDate());
             orderMap.put("orderBookingDate", visit.getOrderBookingDate());
             orderMap.put("expectedGoLiveDate", visit.getExpectedGoLiveDate());
             orderMap.put("schoolStrenght", visit.getSchoolStrenght());
-            orderMap.put("Budget Range", visit.getBudgetRange());
+            orderMap.put("budgetRange", visit.getBudgetRange());
             orderMap.put("initialPayment", visit.getInitialPayment());
+            orderMap.put("decisionMakerName",visit.getDecisionMakerName());
+            orderMap.put("decisionTimeline",visit.getDecisionTimeline());
+//            orderMap.put("No Of Users", visit.getNoOfUsers());
+
             orderMap.put("paymentTerms", visit.getPaymentTerms());
             orderMap.put("costPerMember", visit.getCostPerMember());
             orderMap.put("currentSystem", visit.getCurrentSystem());
+            orderMap.put("noOfUsers", visit.getNoOfUsers());
             orderMap.put("idCards", visit.getIdCards());
-            orderMap.put("RFID Integration", visit.getRfidIntegration());
-            orderMap.put("Payment GateWay Preference", visit.getPaymentGatewayPreference());
+            orderMap.put("rfidIntegration", visit.getRfidIntegration());
+            orderMap.put("paymentGatewayPreference", visit.getPaymentGatewayPreference());
+            orderMap.put("demoRequired", visit.getDemoRequired());
+            orderMap.put("demoDate", visit.getDemoDate());
+            orderMap.put("proposalDate", visit.getProposalDate());
+            orderMap.put("dataMigrationRequired", visit.getDataMigrationRequired());
+            orderMap.put("customFeaturesRequired", visit.getCustomFeaturesRequired());
             
             orderMap.put("marketingExecutiveName", visit.getMarketingExecutiveName());
             orderMap.put("locationCity", visit.getLocationCity());
@@ -484,14 +651,14 @@ public class MarketingService {
         return response;
     }
 
-    public void deleteRejectedSchoolVisit(Integer visitId) {
+    public void deleteschoolVisit(Integer visitId) {
         SchoolVisited visit = schoolVisitedRepository.findById(visitId)
                 .orElseThrow(() -> new IllegalArgumentException("School visit not found"));
         
-        // Only allow deletion of rejected visits
-        if (visit.getStatus() != SchoolVisited.VisitStatus.REJECTED) {
-            throw new IllegalArgumentException("Only rejected school visits can be deleted");
-        }
+//        // Only allow deletion of rejected visits
+//        if (visit.getStatus() != SchoolVisited.VisitStatus.REJECTED ) {
+//            throw new IllegalArgumentException("Only rejected school visits can be deleted");
+//        }
         
         // Delete related modules first
         List<SchoolModuleRequired> modules = schoolModuleRequiredRepository.findBySchoolVisitedId(visitId);
@@ -527,7 +694,7 @@ public class MarketingService {
         profile.put("email", team.getEmail());
         profile.put("phoneNumber", team.getPhoneNumber());
         profile.put("age", team.getAge());
-        profile.put("gender", team.getGender() != null ? team.getGender().name() : null);
+        profile.put("gender", user.getGender() != null ? user.getGender().name() : null);
         profile.put("address", team.getAddress());
         
         // Work info

@@ -116,8 +116,8 @@ public class AdmiService {
 		team.setAddress((String) userData.get("address"));
 		team.setAssignedRegion((String) userData.get("assignedRegion"));
 		team.setTargetDistricts((String) userData.get("targetDistricts"));
-		// 🔥 NEW: PHOTO UPLOAD (20 lines max)
-		// 🔥 FIXED PHOTO UPLOAD
+		//  NEW: PHOTO UPLOAD (20 lines max)
+		//  FIXED PHOTO UPLOAD
 		MultipartFile photo = (MultipartFile) userData.get("photo");
 		if (photo != null && !photo.isEmpty()) {
 			// Security + Validation
@@ -129,7 +129,7 @@ public class AdmiService {
 			}
 
 			try {
-				// ✅ FIXED: Create directory + filename + save
+				//  FIXED: Create directory + filename + save
 				Files.createDirectories(Paths.get(uploadDir));
 				String filename = saved.getUserId() + "_" + System.currentTimeMillis()
 						+ getFileExtension(photo.getOriginalFilename());
@@ -224,6 +224,8 @@ public class AdmiService {
 				try {
 					Path oldFile = Paths.get(uploadDir, oldPhotoPath.replace("/uploads/marketing/", ""));
 					Files.deleteIfExists(oldFile);
+			        team.setProfilePhotoPath(null);
+
 				} catch (Exception e) {
 					logger.warn("Could not delete old photo for user {}", team.getEmail(), e);
 				}
