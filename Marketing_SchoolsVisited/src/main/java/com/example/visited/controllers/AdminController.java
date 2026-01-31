@@ -103,6 +103,29 @@ public class AdminController {
                 "users", users
         ));
     }
+    
+    @GetMapping("/schoolvisits-user/{userId}")
+    public ResponseEntity<?> getschoolvisitsbyUser(
+            HttpServletRequest request,
+            @PathVariable Integer userId) {
+
+        User user = (User) request.getAttribute("authenticatedUser");
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        if (user.getRole() != User.Role.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Admin role required"));
+        }
+
+        List<Map<String, Object>> data = marketingService.getAllSchoolVisits(userId);
+
+        return ResponseEntity.ok(data);
+    }
+
 
     @PutMapping(value = "/update-marketing-user/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateMarketingUser(
@@ -116,7 +139,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         if (user.getRole() != User.Role.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin role required"));
         }
 
         // Optional: Add photo to userData map so service layer can handle it
@@ -143,7 +166,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         if (user.getRole() != User.Role.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin role required"));
         }
 
         String newStatus = statusData.get("status");
@@ -165,7 +188,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         if (user.getRole() != User.Role.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin role required"));
         }
         admiService.deleteMarketingUser(userId);
 
@@ -210,7 +233,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         if (user.getRole() != User.Role.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin role required"));
         }
 
         Modules created = admiService.createModule(moduleData);
@@ -232,7 +255,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         if (user.getRole() != User.Role.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin role required"));
         }
 
         Modules updated = admiService.updateModule(moduleId, moduleData);

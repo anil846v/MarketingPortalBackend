@@ -1,434 +1,271 @@
 package com.example.visited.entitys;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-
 @Entity
 @Table(name = "school_visited")
 public class SchoolVisited {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Integer id;
 
-	@Column(name = "school_name", length = 70)
-	private String schoolName;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-	@Column(name = "visited_date")
-	private LocalDate visitedDate;
+    @Column(name = "school_name", length = 70)
+    private String schoolName;
 
-	@Column(name = "user_id", nullable = true)
-	private Integer userId;
+    @Column(name = "visited_date")
+    private LocalDate visitedDate;
 
-	@Column(name = "marketing_executive_name", length = 50)
-	private String marketingExecutiveName;
+    // ── NEW: JPA relationship to User ──
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false) // FK to users.user_id
+    private User user;
 
-	@Column(name = "location_city", columnDefinition = "TEXT")
-	private String locationCity;
+    @Column(name = "marketing_executive_name", length = 50)
+    private String marketingExecutiveName;
 
-	@Column(name = "contact_person_name", columnDefinition = "TEXT")
-	private String contactPersonName;
+    @Column(name = "location_city", columnDefinition = "TEXT")
+    private String locationCity;
 
-	@Column(columnDefinition = "TEXT")
-	private String designation;
+    @Column(name = "contact_person_name", columnDefinition = "TEXT")
+    private String contactPersonName;
 
-	@Column(name = "contact_no", columnDefinition = "TEXT")
-	private String contactNo;
+    @Column(columnDefinition = "TEXT")
+    private String designation;
 
-	@Column(name = "email_id", columnDefinition = "TEXT")
-	private String emailId;
+    @Column(name = "contact_no", columnDefinition = "TEXT")
+    private String contactNo;
 
-	@Column(name = "school_strenght")
-	private Integer schoolStrenght;
+    @Column(name = "email_id", columnDefinition = "TEXT")
+    private String emailId;
 
-	@Column(columnDefinition = "TEXT")
-	private String boards;
+    @Column(name = "school_strenght")
+    private Integer schoolStrenght;
 
-	@Column(name = "current_system", length = 100)
-	private String currentSystem;
+    @Column(columnDefinition = "TEXT")
+    private String boards;
 
-	@Column(name = "no_of_users")
-	private Integer noOfUsers;
+    @Column(name = "current_system", length = 100)
+    private String currentSystem;
 
-	@Column(name = "data_migration_required", length = 30)
-	private String dataMigrationRequired;
+    @Column(name = "no_of_users")
+    private Integer noOfUsers;
 
-	@Column(name = "custom_features_required", columnDefinition = "TEXT")
-	private String customFeaturesRequired;
+    @Column(name = "data_migration_required", length = 30)
+    private String dataMigrationRequired;
 
-	@Column(name = "custom_feature_description")
-	private String customFeatureDescription;
+    @Column(name = "custom_features_required", columnDefinition = "TEXT")
+    private String customFeaturesRequired;
+
+    @Column(name = "custom_feature_description")
+    private String customFeatureDescription;
+
+    @Column(name = "requiredplatform")
+    private String requiredplatform;
+
+    @Column(name = "billingfrequency")
+    private String billingfrequency;
+   
+   
 
 	@Column(name = "rfid_integration", length = 40)
-	private String rfidIntegration;
+    private String rfidIntegration;
 
-	@Column(name = "id_cards", length = 45)
-	private String idCards;
+    @Column(name = "id_cards", length = 45)
+    private String idCards;
 
-	@Column(name = "payment_gateway_preference", columnDefinition = "TEXT")
-	private String paymentGatewayPreference;
+    @Column(name = "payment_gateway_preference", columnDefinition = "TEXT")
+    private String paymentGatewayPreference;
 
-	@Column(name = "budget_range", precision = 12, scale = 2)
-	private BigDecimal budgetRange = BigDecimal.ZERO;
+    @Column(name = "budget_range", precision = 12, scale = 2)
+    private BigDecimal budgetRange = BigDecimal.ZERO;
 
-	@Column(name = "expected_go_live_date")
-	private LocalDate expectedGoLiveDate;
+    @Column(name = "expected_go_live_date")
+    private LocalDate expectedGoLiveDate;
 
-	@Column(name = "order_booking_date")
-	private LocalDate orderBookingDate;
+    @Column(name = "order_booking_date")
+    private LocalDate orderBookingDate;
 
-	@Column(name = "initial_payment", precision = 12, scale = 2)
-	private BigDecimal initialPayment;
+    @Column(name = "initial_payment", precision = 12, scale = 2)
+    private BigDecimal initialPayment;
 
-	@Column(name = "payment_terms", columnDefinition = "TEXT")
-	private String paymentTerms;
+    @Column(name = "payment_terms", columnDefinition = "TEXT")
+    private String paymentTerms;
 
-	@Column(name = "cost_per_member", precision = 10, scale = 2)
-	private BigDecimal costPerMember;
+    @Column(name = "cost_per_member", precision = 10, scale = 2)
+    private BigDecimal costPerMember;
 
-	@Column(name = "decision_maker_name", length = 50)
-	private String decisionMakerName;
+    @Column(name = "decision_maker_name", length = 50)
+    private String decisionMakerName;
 
-	public LocalDate getExpectedGoLiveDate() {
-		return expectedGoLiveDate;
-	}
-
-	public void setExpectedGoLiveDate(LocalDate expectedGoLiveDate) {
-		this.expectedGoLiveDate = expectedGoLiveDate;
-	}
-
-	public LocalDate getOrderBookingDate() {
-		return orderBookingDate;
-	}
-
-	public void setOrderBookingDate(LocalDate orderBookingDate) {
-		this.orderBookingDate = orderBookingDate;
-	}
-
-	public BigDecimal getInitialPayment() {
-		return initialPayment;
-	}
-
-	public void setInitialPayment(BigDecimal initialPayment) {
-		this.initialPayment = initialPayment;
-	}
-
-	public String getPaymentTerms() {
-		return paymentTerms;
-	}
-
-	public void setPaymentTerms(String paymentTerms) {
-		this.paymentTerms = paymentTerms;
-	}
-
-	public BigDecimal getCostPerMember() {
-		return costPerMember;
-	}
-
-	public void setCostPerMember(BigDecimal costPerMember) {
-		this.costPerMember = costPerMember;
-	}
-
-	@Column(name = "decision_timeline", columnDefinition = "TEXT")
-	private String decisionTimeline;
-
-	@Column(name = "demo_required", length = 50)
-	private String demoRequired;
-
-	@Column(name = "demo_date")
-	private LocalDate demoDate;
-
-	@Column(name = "proposal_sent", length = 50)
-	private String proposalSent;
-
-	@Column(name = "proposal_date")
-	private LocalDate proposalDate;
-
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
-	private VisitStatus status = VisitStatus.PENDING;
-
-	@Column(name = "rejection_reason", columnDefinition = "TEXT")
-	private String rejectionReason;
-
-	public enum VisitStatus {
-		PENDING, ACCEPTED, REJECTED
-	}
-
-	@Column(name = "created_at")
-	private LocalDateTime createdAt;
-
-	@Column(name = "updated_at")
-	private LocalDateTime updatedAt;
-
-	@PrePersist
-	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-		updatedAt = LocalDateTime.now();
-	}
-
-	@PreUpdate
-	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
-
-	// Getters and Setters
-	public Integer getId() {
-		return id;
-	}
-
-	public void setId(Integer id) {
-		this.id = id;
-	}
-
-	public String getSchoolName() {
-		return schoolName;
-	}
-
-	public void setSchoolName(String schoolName) {
-		this.schoolName = schoolName;
-	}
-
-	public LocalDate getVisitedDate() {
-		return visitedDate;
-	}
-
-	public void setVisitedDate(LocalDate visitedDate) {
-		this.visitedDate = visitedDate;
-	}
-
-	public Integer getUserId() {
-		return userId;
-	}
-
-	public void setUserId(Integer userId) {
-		this.userId = userId;
-	}
-
-	public String getMarketingExecutiveName() {
-		return marketingExecutiveName;
-	}
+    @Column(name = "decision_timeline", columnDefinition = "TEXT")
+    private String decisionTimeline;
 
-	public void setMarketingExecutiveName(String marketingExecutiveName) {
-		this.marketingExecutiveName = marketingExecutiveName;
-	}
-
-	public String getLocationCity() {
-		return locationCity;
-	}
-
-	public void setLocationCity(String locationCity) {
-		this.locationCity = locationCity;
-	}
-
-	public String getContactPersonName() {
-		return contactPersonName;
-	}
-
-	public void setContactPersonName(String contactPersonName) {
-		this.contactPersonName = contactPersonName;
-	}
+    @Column(name = "demo_required", length = 50)
+    private String demoRequired;
 
-	public String getDesignation() {
-		return designation;
-	}
+    @Column(name = "demo_date")
+    private LocalDate demoDate;
 
-	public void setDesignation(String designation) {
-		this.designation = designation;
-	}
+    @Column(name = "proposal_sent", length = 50)
+    private String proposalSent;
 
-	public String getContactNo() {
-		return contactNo;
-	}
+    @Column(name = "proposal_date")
+    private LocalDate proposalDate;
 
-	public void setContactNo(String contactNo) {
-		this.contactNo = contactNo;
-	}
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private VisitStatus status = VisitStatus.PENDING;
 
-	public String getEmailId() {
-		return emailId;
-	}
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
 
-	public void setEmailId(String emailId) {
-		this.emailId = emailId;
-	}
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-	public Integer getSchoolStrenght() {
-		return schoolStrenght;
-	}
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
-	public void setSchoolStrenght(Integer schoolStrenght) {
-		this.schoolStrenght = schoolStrenght;
-	}
+    // ── JPA Callbacks for timestamps ──
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
 
-	public String getBoards() {
-		return boards;
-	}
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
-	public void setBoards(String boards) {
-		this.boards = boards;
+    // ── Enum ──
+    public enum VisitStatus {
+        PENDING, ACCEPTED, REJECTED
+    }
+    public String getRequiredplatform() {
+		return requiredplatform;
 	}
 
-	public String getCurrentSystem() {
-		return currentSystem;
+	public void setRequiredplatform(String requiredplatform) {
+		this.requiredplatform = requiredplatform;
 	}
 
-	public void setCurrentSystem(String currentSystem) {
-		this.currentSystem = currentSystem;
-	}
+    // ── Getters and Setters ──
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
-	public Integer getNoOfUsers() {
-		return noOfUsers;
-	}
+    public String getSchoolName() { return schoolName; }
+    public void setSchoolName(String schoolName) { this.schoolName = schoolName; }
 
-	public void setNoOfUsers(Integer noOfUsers) {
-		this.noOfUsers = noOfUsers;
-	}
+    public LocalDate getVisitedDate() { return visitedDate; }
+    public void setVisitedDate(LocalDate visitedDate) { this.visitedDate = visitedDate; }
 
-	public String getDataMigrationRequired() {
-		return dataMigrationRequired;
-	}
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
-	public void setDataMigrationRequired(String dataMigrationRequired) {
-		this.dataMigrationRequired = dataMigrationRequired;
-	}
+    public String getMarketingExecutiveName() { return marketingExecutiveName; }
+    public void setMarketingExecutiveName(String marketingExecutiveName) { this.marketingExecutiveName = marketingExecutiveName; }
 
-	public String getCustomFeaturesRequired() {
-		return customFeaturesRequired;
-	}
+    public String getLocationCity() { return locationCity; }
+    public void setLocationCity(String locationCity) { this.locationCity = locationCity; }
 
-	public void setCustomFeaturesRequired(String customFeaturesRequired) {
-		this.customFeaturesRequired = customFeaturesRequired;
-	}
+    public String getContactPersonName() { return contactPersonName; }
+    public void setContactPersonName(String contactPersonName) { this.contactPersonName = contactPersonName; }
 
-	public String getRfidIntegration() {
-		return rfidIntegration;
-	}
+    public String getDesignation() { return designation; }
+    public void setDesignation(String designation) { this.designation = designation; }
 
-	public void setRfidIntegration(String rfidIntegration) {
-		this.rfidIntegration = rfidIntegration;
-	}
+    public String getContactNo() { return contactNo; }
+    public void setContactNo(String contactNo) { this.contactNo = contactNo; }
 
-	public String getIdCards() {
-		return idCards;
-	}
+    public String getEmailId() { return emailId; }
+    public void setEmailId(String emailId) { this.emailId = emailId; }
 
-	public void setIdCards(String idCards) {
-		this.idCards = idCards;
-	}
+    public Integer getSchoolStrenght() { return schoolStrenght; }
+    public void setSchoolStrenght(Integer schoolStrenght) { this.schoolStrenght = schoolStrenght; }
 
-	public String getPaymentGatewayPreference() {
-		return paymentGatewayPreference;
-	}
+    public String getBoards() { return boards; }
+    public void setBoards(String boards) { this.boards = boards; }
 
-	public void setPaymentGatewayPreference(String paymentGatewayPreference) {
-		this.paymentGatewayPreference = paymentGatewayPreference;
-	}
+    public String getCurrentSystem() { return currentSystem; }
+    public void setCurrentSystem(String currentSystem) { this.currentSystem = currentSystem; }
 
-	public BigDecimal getBudgetRange() {
-		return budgetRange;
-	}
+    public Integer getNoOfUsers() { return noOfUsers; }
+    public void setNoOfUsers(Integer noOfUsers) { this.noOfUsers = noOfUsers; }
 
-	public void setBudgetRange(BigDecimal budgetRange) {
-		this.budgetRange = budgetRange;
-	}
+    public String getDataMigrationRequired() { return dataMigrationRequired; }
+    public void setDataMigrationRequired(String dataMigrationRequired) { this.dataMigrationRequired = dataMigrationRequired; }
 
-	public String getDecisionMakerName() {
-		return decisionMakerName;
-	}
+    public String getCustomFeaturesRequired() { return customFeaturesRequired; }
+    public void setCustomFeaturesRequired(String customFeaturesRequired) { this.customFeaturesRequired = customFeaturesRequired; }
 
-	public void setDecisionMakerName(String decisionMakerName) {
-		this.decisionMakerName = decisionMakerName;
-	}
+    public String getCustomFeatureDescription() { return customFeatureDescription; }
+    public void setCustomFeatureDescription(String customFeatureDescription) { this.customFeatureDescription = customFeatureDescription; }
 
-	public String getDecisionTimeline() {
-		return decisionTimeline;
-	}
+    public String getRfidIntegration() { return rfidIntegration; }
+    public void setRfidIntegration(String rfidIntegration) { this.rfidIntegration = rfidIntegration; }
 
-	public void setDecisionTimeline(String decisionTimeline) {
-		this.decisionTimeline = decisionTimeline;
-	}
+    public String getIdCards() { return idCards; }
+    public void setIdCards(String idCards) { this.idCards = idCards; }
 
-	public String getDemoRequired() {
-		return demoRequired;
-	}
+    public String getPaymentGatewayPreference() { return paymentGatewayPreference; }
+    public void setPaymentGatewayPreference(String paymentGatewayPreference) { this.paymentGatewayPreference = paymentGatewayPreference; }
 
-	public void setDemoRequired(String demoRequired) {
-		this.demoRequired = demoRequired;
-	}
+    public BigDecimal getBudgetRange() { return budgetRange; }
+    public void setBudgetRange(BigDecimal budgetRange) { this.budgetRange = budgetRange; }
 
-	public LocalDate getDemoDate() {
-		return demoDate;
-	}
+    public LocalDate getExpectedGoLiveDate() { return expectedGoLiveDate; }
+    public void setExpectedGoLiveDate(LocalDate expectedGoLiveDate) { this.expectedGoLiveDate = expectedGoLiveDate; }
 
-	public void setDemoDate(LocalDate demoDate) {
-		this.demoDate = demoDate;
-	}
+    public LocalDate getOrderBookingDate() { return orderBookingDate; }
+    public void setOrderBookingDate(LocalDate orderBookingDate) { this.orderBookingDate = orderBookingDate; }
 
-	public String getProposalSent() {
-		return proposalSent;
-	}
+    public BigDecimal getInitialPayment() { return initialPayment; }
+    public void setInitialPayment(BigDecimal initialPayment) { this.initialPayment = initialPayment; }
 
-	public void setProposalSent(String proposalSent) {
-		this.proposalSent = proposalSent;
-	}
+    public String getPaymentTerms() { return paymentTerms; }
+    public void setPaymentTerms(String paymentTerms) { this.paymentTerms = paymentTerms; }
 
-	public LocalDate getProposalDate() {
-		return proposalDate;
-	}
+    public BigDecimal getCostPerMember() { return costPerMember; }
+    public void setCostPerMember(BigDecimal costPerMember) { this.costPerMember = costPerMember; }
 
-	public void setProposalDate(LocalDate proposalDate) {
-		this.proposalDate = proposalDate;
-	}
+    public String getDecisionMakerName() { return decisionMakerName; }
+    public void setDecisionMakerName(String decisionMakerName) { this.decisionMakerName = decisionMakerName; }
 
-	public VisitStatus getStatus() {
-		return status;
-	}
+    public String getDecisionTimeline() { return decisionTimeline; }
+    public void setDecisionTimeline(String decisionTimeline) { this.decisionTimeline = decisionTimeline; }
 
-	public void setStatus(VisitStatus status) {
-		this.status = status;
-	}
+    public String getDemoRequired() { return demoRequired; }
+    public void setDemoRequired(String demoRequired) { this.demoRequired = demoRequired; }
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
+    public LocalDate getDemoDate() { return demoDate; }
+    public void setDemoDate(LocalDate demoDate) { this.demoDate = demoDate; }
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
+    public String getProposalSent() { return proposalSent; }
+    public void setProposalSent(String proposalSent) { this.proposalSent = proposalSent; }
 
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
+    public LocalDate getProposalDate() { return proposalDate; }
+    public void setProposalDate(LocalDate proposalDate) { this.proposalDate = proposalDate; }
 
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
+    public VisitStatus getStatus() { return status; }
+    public void setStatus(VisitStatus status) { this.status = status; }
 
-	public String getRejectionReason() {
-		return rejectionReason;
-	}
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 
-	public void setRejectionReason(String rejectionReason) {
-		this.rejectionReason = rejectionReason;
-	}
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-	public String getCustomFeatureDescription() {
-		return customFeatureDescription;
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+	public String getBillingfrequency() {
+		return billingfrequency;
 	}
 
-	public void setCustomFeatureDescription(String customFeatureDescription) {
-		this.customFeatureDescription = customFeatureDescription;
+	public void setBillingfrequency(String billingfrequency) {
+		this.billingfrequency = billingfrequency;
 	}
 }

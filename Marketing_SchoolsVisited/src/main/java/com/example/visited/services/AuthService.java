@@ -81,7 +81,7 @@ public class AuthService {
 
 	    private String generateNewToken(User user) {
 	        return Jwts.builder()
-	                .setSubject(user.getUsername())
+	                .setSubject(user.getUserId().toString())  // now immutable ID
 	                .claim("role", user.getRole().name())
 	                .setIssuedAt(new Date())
 	                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hour
@@ -132,20 +132,18 @@ public class AuthService {
 	        }
 	    }
 
-	    public String extractUsername(String token) {
-			try {
-				if (token == null || token.trim().isEmpty()) {
-					throw new IllegalArgumentException("Token cannot be null or empty");
-				}
-				return Jwts.parserBuilder()
-						.setSigningKey(SIGNING_KEY)
-						.build()
-						.parseClaimsJws(token)
-						.getBody()
-						.getSubject();
-			} catch (Exception e) {
-				throw new SecurityException("Invalid token");
-			}
-		}
+	    public Integer extractUserId(String token) {
+	        try {
+	            String userIdStr = Jwts.parserBuilder()
+	                    .setSigningKey(SIGNING_KEY)
+	                    .build()
+	                    .parseClaimsJws(token)
+	                    .getBody()
+	                    .getSubject();
+	            return Integer.parseInt(userIdStr);
+	        } catch (Exception e) {
+	            throw new SecurityException("Invalid token");
+	        }
+	    }
 
 }

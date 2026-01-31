@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 // AdmiService imports:
 import org.springframework.beans.factory.annotation.Value;
@@ -20,9 +21,13 @@ import org.springframework.web.multipart.MultipartFile; // For @RequestPart
 
 import com.example.visited.entitys.MarketingTeam;
 import com.example.visited.entitys.Modules;
+import com.example.visited.entitys.SchoolModuleRequired;
+import com.example.visited.entitys.SchoolVisited;
 import com.example.visited.entitys.User;
 import com.example.visited.repositories.MarketingTeamRepository;
 import com.example.visited.repositories.ModulesRepository;
+import com.example.visited.repositories.SchoolModuleRequiredRepository;
+import com.example.visited.repositories.SchoolsVisitedRepository;
 import com.example.visited.repositories.UserRepository;
 
 @Service
@@ -38,13 +43,19 @@ public class AdmiService {
 	private final MarketingTeamRepository marketingTeamRepository;
 	private final ModulesRepository modulesRepository;
 	private final BCryptPasswordEncoder passwordEncoder;
+	private final SchoolsVisitedRepository schoolVisitedRepository;
+	private final SchoolModuleRequiredRepository schoolModuleRequiredRepository;
+
+
 
 	public AdmiService(UserRepository userRepository, MarketingTeamRepository marketingTeamRepository,
-			ModulesRepository modulesRepository, BCryptPasswordEncoder passwordEncoder) {
+			ModulesRepository modulesRepository, BCryptPasswordEncoder passwordEncoder,SchoolsVisitedRepository schoolVisitedRepository,SchoolModuleRequiredRepository schoolModuleRequiredRepository) {
 		this.userRepository = userRepository;
 		this.marketingTeamRepository = marketingTeamRepository;
 		this.modulesRepository = modulesRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.schoolVisitedRepository  =schoolVisitedRepository;
+		this.schoolModuleRequiredRepository = schoolModuleRequiredRepository;
 	}
 
 	// ── Marketing Users ─────────────────────────────────────────────
@@ -61,7 +72,7 @@ public class AdmiService {
 			map.put("gender", user.getGender() != null ? user.getGender().name() : null);
 			map.put("status", user.getStatus() != null ? user.getStatus().name() : null);
 
-			marketingTeamRepository.findByUserId(user.getUserId()).ifPresentOrElse(team -> {
+			marketingTeamRepository.findByUser(user).ifPresentOrElse(team -> {
 				map.put("fullName", team.getFullName());
 				map.put("phoneNumber", team.getPhoneNumber());
 				map.put("email", team.getEmail());
@@ -100,7 +111,8 @@ public class AdmiService {
 		User saved = userRepository.save(user);
 
 		MarketingTeam team = new MarketingTeam();
-		team.setUserId(saved.getUserId());
+		team.setUser(saved);   // NOT setUserId()
+		logger.info("user" + user);
 		team.setFullName((String) userData.get("fullName"));
 		team.setPhoneNumber((String) userData.get("phoneNumber"));
 		team.setEmail(email);
@@ -178,7 +190,7 @@ public class AdmiService {
 		String newPhone = (String) userData.get("phoneNumber");
 		if (newPhone != null) {
 			MarketingTeam t = marketingTeamRepository.findByPhoneNumber(newPhone);
-			if (t != null && !t.getUserId().equals(userId)) {
+			if (t != null && !t.getUser().getUserId().equals(userId)) {
 				throw new IllegalArgumentException("Phone already in use");
 			}
 		}
@@ -195,7 +207,7 @@ public class AdmiService {
 
 		User savedUser = userRepository.save(user);
 
-		marketingTeamRepository.findByUserId(userId).ifPresent(team -> {
+		marketingTeamRepository.findByUser(user).ifPresent(team -> {
 			if (userData.containsKey("fullName"))
 				team.setFullName((String) userData.get("fullName"));
 			if (newPhone != null)
@@ -257,32 +269,115 @@ public class AdmiService {
 
 	@Transactional
 	public void deleteMarketingUser(Integer userId) {
-		User user = userRepository.findByUserId(userId);
-		if (user == null || user.getRole() != User.Role.MARKETING) {
-			throw new IllegalArgumentException("Marketing user not found");
-		}
 
-		marketingTeamRepository.findByUserId(userId).ifPresent(team -> {
+	    User user = userRepository.findByUserId(userId);
+	    if (user == null || user.getRole() != User.Role.MARKETING) {
+	        throw new IllegalArgumentException("Marketing user not found");
+	    }
 
-			// 1️⃣ Delete photo from disk if exists
-			String photoPath = team.getProfilePhotoPath();
+	    marketingTeamRepository.findByUser(user).ifPresent(team -> {
 
-			if (photoPath != null) {
-				try {
-					Path filePath = Paths.get(uploadDir, photoPath.replace("/uploads/marketing/", ""));
-					Files.deleteIfExists(filePath);
-					logger.info("Deleted profile photo for user {}", team.getEmail());
-				} catch (Exception e) {
-					logger.warn("Could not delete photo for user {}", team.getEmail(), e);
-				}
-			}
+	        // 1️⃣ Delete photo from disk if exists
+	        String photoPath = team.getProfilePhotoPath();
 
-			// 2️⃣ Delete marketing team record
-			marketingTeamRepository.delete(team);
-		});
-		userRepository.delete(user);
+	        if (photoPath != null) {
+	            try {
+	                Path filePath = Paths.get(uploadDir, photoPath.replace("/uploads/marketing/", ""));
+	                Files.deleteIfExists(filePath);
+	                logger.info("Deleted profile photo for user {}", team.getEmail());
+	            } catch (Exception e) {
+	                logger.warn("Could not delete photo for user {}", team.getEmail(), e);
+	            }
+	        }
+
+	        // 2️⃣ Delete marketing team record
+	        marketingTeamRepository.delete(team);
+	    });
+
+	    // 3️⃣ Delete user (JWT, visits, etc cascade if FK configured)
+	    userRepository.delete(user);
 	}
 
+	
+	public List<Map<String, Object>> getschoolsbyUser(Integer userId) {
+		User user = userRepository.findByUserId(userId);
+	    if (user == null || user.getRole() != User.Role.MARKETING) {
+	        throw new IllegalArgumentException("Marketing user not found");
+	    }
+			List<SchoolVisited> visits = schoolVisitedRepository.findByUser(user);
+			List<Map<String, Object>> visitList = new ArrayList<>();
+			for (SchoolVisited visit : visits) {
+				Map<String, Object> visitMap = new HashMap<>();
+				visitMap.put("id", visit.getId());
+				visitMap.put("schoolName", visit.getSchoolName());
+				visitMap.put("visitedDate", visit.getVisitedDate());
+				visitMap.put("marketingExecutiveName", visit.getMarketingExecutiveName());
+				visitMap.put("locationCity", visit.getLocationCity());
+				visitMap.put("contactPersonName", visit.getContactPersonName());
+				visitMap.put("designation", visit.getDesignation());
+				visitMap.put("decisionMakerName", visit.getDecisionMakerName());
+				visitMap.put("boards", visit.getBoards());
+				visitMap.put("decisionTimeline", visit.getDecisionTimeline());
+				visitMap.put("contactNo", visit.getContactNo());
+				visitMap.put("emailId", visit.getEmailId());
+				visitMap.put("schoolStrenght", visit.getSchoolStrenght());
+				visitMap.put("expectedGoLiveDate", visit.getExpectedGoLiveDate());
+				visitMap.put("billingFrequency",visit.getBillingfrequency()); // "Monthly", "Quarterly",
+
+
+				// Only show payment fields if status is ACCEPTED
+				if (visit.getStatus() == SchoolVisited.VisitStatus.ACCEPTED) {
+					visitMap.put("orderBookingDate", visit.getOrderBookingDate());
+					visitMap.put("initialPayment", visit.getInitialPayment());
+					visitMap.put("paymentTerms", visit.getPaymentTerms());
+
+				}
+
+				visitMap.put("currentSystem", visit.getCurrentSystem());
+				visitMap.put("requiredplatform", visit.getRequiredplatform());
+				visitMap.put("noOfUsers", visit.getNoOfUsers());
+				visitMap.put("dataMigrationRequired", visit.getDataMigrationRequired());
+				visitMap.put("customFeaturesRequired", visit.getCustomFeaturesRequired());
+				visitMap.put("customFeatureDescription", visit.getCustomFeatureDescription());
+				visitMap.put("rfidIntegration", visit.getRfidIntegration());
+				visitMap.put("idCards", visit.getIdCards());
+				visitMap.put("paymentGatewayPreference", visit.getPaymentGatewayPreference());
+				visitMap.put("budgetRange", visit.getBudgetRange());
+				visitMap.put("costPerMember", visit.getCostPerMember());
+				visitMap.put("demoRequired", visit.getDemoRequired());
+				visitMap.put("demoDate", visit.getDemoDate());
+				visitMap.put("proposalSent", visit.getProposalSent());
+				visitMap.put("proposalDate", visit.getProposalDate());
+				visitMap.put("status", visit.getStatus());
+				if (visit.getStatus() == SchoolVisited.VisitStatus.REJECTED) {
+					visitMap.put("rejectionReason", visit.getRejectionReason());
+				}
+				visitMap.put("createdAt", visit.getCreatedAt());
+
+				// Get selected modules for this visit
+				List<SchoolModuleRequired> modules = schoolModuleRequiredRepository.findBySchoolVisited(visit);
+				List<Map<String, Object>> moduleList = new ArrayList<>();
+
+				for (SchoolModuleRequired module : modules) {
+					Map<String, Object> moduleMap = new HashMap<>();
+					moduleMap.put("moduleId", module.getModuleId());
+					moduleMap.put("isSelected", module.getIsSelected().name());
+					moduleMap.put("remarks", module.getRemarks());
+					moduleList.add(moduleMap);
+				}
+
+				visitMap.put("selectedModules", moduleList);
+				visitList.add(visitMap);
+			}
+
+			return visitList;
+		}
+
+
+	    
+		
+		
+	
 	// ── Modules ─────────────────────────────────────────────────────
 	@Transactional
 	public List<Modules> getAllModules() {
@@ -366,8 +461,9 @@ public class AdmiService {
 		profile.put("gender", admin.getGender() != null ? admin.getGender().name() : null);
 		profile.put("createdAt", admin.getCreatedAt());
 		profile.put("updatedAt", admin.getUpdatedAt());
-		marketingTeamRepository.findByUserId(userId)
-				.ifPresent(team -> profile.put("profilePhotoPath", team.getProfilePhotoPath()));
+		marketingTeamRepository.findByUser(admin)
+        .ifPresent(team -> profile.put("profilePhotoPath", team.getProfilePhotoPath()));
+
 
 		logger.debug("Admin profile fetched for user: {}", userId);
 		return profile;
@@ -436,7 +532,7 @@ public class AdmiService {
 				photo.transferTo(filePath);
 
 				// Save profile photo path
-				marketingTeamRepository.findByUserId(userId).ifPresent(team -> {
+				marketingTeamRepository.findByUser(admin).ifPresent(team -> {
 					team.setProfilePhotoPath("/uploads/marketing/" + filename);
 					marketingTeamRepository.save(team);
 				});
@@ -453,4 +549,6 @@ public class AdmiService {
 		return Map.of("message", "Profile updated successfully", "userId", updatedAdmin.getUserId(), "username",
 				updatedAdmin.getUsername());
 	}
+
+	
 }

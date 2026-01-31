@@ -72,9 +72,9 @@ public class JWT {
 		this.user = user;
 	}
 
-	public void setUserId(Integer id) {
-		this.id = id;
-	}
+//	public void setUserId(Integer id) {
+//		this.id = id;
+//	}
 
 	public String getToken() {
 		return token;

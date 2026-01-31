@@ -85,13 +85,13 @@ public class AuthenticationFilter implements Filter {
         }
 
         // 4. Get username + user
-        String username = authService.extractUsername(token);
-        User user = userRepository.findByUsername(username);
-
+        Integer userId = authService.extractUserId(token);
+        User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "User not found");
             return;
         }
+
 
         // 5. Critical: Check account status
         if (user.getStatus() != User.Status.Approved) {   // ← assuming you have Status enum
@@ -116,7 +116,7 @@ public class AuthenticationFilter implements Filter {
 
         // 7. Success → attach user to request
         request.setAttribute("authenticatedUser", user);
-        logger.debug("Authenticated user: {} ({})", username, user.getRole());
+        logger.debug("Authenticated user: {} ({})", user.getUserId(), user.getRole());  // ✅ use userId instead of username
 
         chain.doFilter(request, response);
     }

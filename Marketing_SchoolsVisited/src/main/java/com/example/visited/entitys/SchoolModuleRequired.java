@@ -10,18 +10,17 @@ public class SchoolModuleRequired {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 	
-	@Column(name = "school_visited_id", nullable = false)
-	private Integer schoolVisitedId;
+
 	
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "school_visited_id", insertable = false, updatable = false)
+    @JoinColumn(name = "school_visited_id", nullable = false)  // REMOVE insertable=false
 	private SchoolVisited schoolVisited;
 	
 	@Column(name = "module_id", nullable = false)
 	private Integer moduleId;
 	
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "module_id", insertable = false, updatable = false)
+    @JoinColumn(name = "module_id", insertable = false, updatable = false)
 	private Modules module;
 	
 	@Enumerated(EnumType.STRING)
@@ -55,12 +54,26 @@ public class SchoolModuleRequired {
 	public Integer getId() { return id; }
 	public void setId(Integer id) { this.id = id; }
 	
-	public Integer getSchoolVisitedId() { return schoolVisitedId; }
-	public void setSchoolVisitedId(Integer schoolVisitedId) { this.schoolVisitedId = schoolVisitedId; }
-	
+
 	public Integer getModuleId() { return moduleId; }
 	public void setModuleId(Integer moduleId) { this.moduleId = moduleId; }
 	
+	public SchoolVisited getSchoolVisited() {
+		return schoolVisited;
+	}
+
+	public void setSchoolVisited(SchoolVisited schoolVisited) {
+		this.schoolVisited = schoolVisited;
+	}
+
+	public Modules getModule() {
+		return module;
+	}
+
+	public void setModule(Modules module) {
+		this.module = module;
+	}
+
 	public IsSelected getIsSelected() { return isSelected; }
 	public void setIsSelected(IsSelected isSelected) { this.isSelected = isSelected; }
 	

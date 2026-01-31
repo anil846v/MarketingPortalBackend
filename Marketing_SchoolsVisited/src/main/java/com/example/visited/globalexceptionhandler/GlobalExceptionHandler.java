@@ -123,17 +123,36 @@ public class GlobalExceptionHandler {
     // ───────────────────────────────────────────────────────────────
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(
-            IllegalArgumentException ex,
-            HttpServletRequest request) {
-
-        return createErrorResponse(
+        IllegalArgumentException ex, HttpServletRequest request) {
+        String errorMessage = ex.getMessage();
+        if (errorMessage.contains("Email already registered")) {
+            return createErrorResponse(
                 request,
-                HttpStatus.BAD_REQUEST,
-                "BAD_REQUEST",
-                ex.getMessage(),
+                HttpStatus.CONFLICT,
+                "EMAIL_ALREADY_EXISTS",
+                "Email is already registered. Please try a different email.",
                 null
+            );
+        } else if (errorMessage.contains("Phone number already exists")) {
+            return createErrorResponse(
+                request,
+                HttpStatus.CONFLICT,
+                "PHONE_NUMBER_ALREADY_EXISTS",
+                "Phone number is already registered. Please try a different phone number.",
+                null
+            );
+        }
+        // Default to BAD_REQUEST for other cases
+        return createErrorResponse(
+            request,
+            HttpStatus.BAD_REQUEST,
+            "BAD_REQUEST",
+            ex.getMessage(),
+            null
         );
     }
+
+
 
     // ───────────────────────────────────────────────────────────────
     //  4. Catch-all - unknown/unexpected errors (MUST HAVE)
