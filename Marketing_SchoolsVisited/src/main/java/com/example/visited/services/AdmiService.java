@@ -148,7 +148,6 @@ public class AdmiService {
 				Path filePath = Paths.get(uploadDir, filename); // ✅ Now filename exists
 				photo.transferTo(filePath);
 				team.setProfilePhotoPath("/uploads/marketing/" + filename);
-				System.out.println("Saving photo to: " + filePath.toAbsolutePath());
 
 			} catch (Exception e) {
 				logger.error("Photo upload failed for user: {}", email, e);
@@ -174,97 +173,118 @@ public class AdmiService {
 
 	@Transactional
 	public User updateMarketingUser(Integer userId, Map<String, Object> userData) {
-		User user = userRepository.findByUserId(userId);
-		if (user == null || user.getRole() != User.Role.MARKETING) {
-			throw new IllegalArgumentException("Marketing user not found");
-		}
 
-		String newEmail = (String) userData.get("email");
-		if (newEmail != null && !newEmail.equals(user.getUsername())) {
-			if (userRepository.findByUsername(newEmail) != null) {
-				throw new IllegalArgumentException("Email already in use");
-			}
-			user.setUsername(newEmail);
-		}
+	    User user = userRepository.findByUserId(userId);
+	    if (user == null || user.getRole() != User.Role.MARKETING) {
+	        throw new IllegalArgumentException("Marketing user not found");
+	    }
 
-		String newPhone = (String) userData.get("phoneNumber");
-		if (newPhone != null) {
-			MarketingTeam t = marketingTeamRepository.findByPhoneNumber(newPhone);
-			if (t != null && !t.getUser().getUserId().equals(userId)) {
-				throw new IllegalArgumentException("Phone already in use");
-			}
-		}
+	    // ---------- USER TABLE ----------
+	    String newEmail = (String) userData.get("email");
+	    if (newEmail != null && !newEmail.equals(user.getUsername())) {
+	        if (userRepository.findByUsername(newEmail) != null) {
+	            throw new IllegalArgumentException("Email already in use");
+	        }
+	        user.setUsername(newEmail);
+	    }
 
-		if (userData.containsKey("password")) {
-			user.setPasswordHash(passwordEncoder.encode((String) userData.get("password")));
-		}
-		if (userData.containsKey("gender")) {
-			user.setGender(User.Gender.valueOf((String) userData.get("gender")));
-		}
-		if (userData.containsKey("status")) {
-			user.setStatus(User.Status.valueOf((String) userData.get("status")));
-		}
+	    String newPhone = (String) userData.get("phoneNumber");
+	    if (newPhone != null) {
+	        MarketingTeam t = marketingTeamRepository.findByPhoneNumber(newPhone);
+	        if (t != null && !t.getUser().getUserId().equals(userId)) {
+	            throw new IllegalArgumentException("Phone already in use");
+	        }
+	    }
 
-		User savedUser = userRepository.save(user);
+	    if (userData.containsKey("password")) {
+	        user.setPasswordHash(passwordEncoder.encode((String) userData.get("password")));
+	    }
 
-		marketingTeamRepository.findByUser(user).ifPresent(team -> {
-			if (userData.containsKey("fullName"))
-				team.setFullName((String) userData.get("fullName"));
-			if (newPhone != null)
-				team.setPhoneNumber(newPhone);
-			if (userData.containsKey("email"))
-				team.setEmail((String) userData.get("email"));
-			if (userData.containsKey("age")) {
-				Object ageObj = userData.get("age");
-				if (ageObj instanceof Integer) {
-					team.setAge((Integer) ageObj);
-				} else if (ageObj instanceof String) {
-					team.setAge(Integer.parseInt((String) ageObj));
-				}
-			}
-			if (userData.containsKey("address"))
-				team.setAddress((String) userData.get("address"));
-			if (userData.containsKey("assignedRegion"))
-				team.setAssignedRegion((String) userData.get("assignedRegion"));
-			if (userData.containsKey("targetDistricts"))
-				team.setTargetDistricts((String) userData.get("targetDistricts"));
-			// --- PHOTO UPLOAD ---
-			// 1️⃣ Get existing photo path
-			String oldPhotoPath = team.getProfilePhotoPath();
+	    if (userData.containsKey("gender")) {
+	        user.setGender(User.Gender.valueOf((String) userData.get("gender")));
+	    }
 
-			if (oldPhotoPath != null) {
-				try {
-					Path oldFile = Paths.get(uploadDir, oldPhotoPath.replace("/uploads/marketing/", ""));
-					Files.deleteIfExists(oldFile);
-			        team.setProfilePhotoPath(null);
+	    if (userData.containsKey("status")) {
+	        user.setStatus(User.Status.valueOf((String) userData.get("status")));
+	    }
 
-				} catch (Exception e) {
-					logger.warn("Could not delete old photo for user {}", team.getEmail(), e);
-				}
-			}
-			MultipartFile photo = (MultipartFile) userData.get("photo");
-			if (photo != null && !photo.isEmpty()) {
-				if (photo.getSize() > 5 * 1024 * 1024)
-					throw new IllegalArgumentException("Photo too large (max 5MB)");
-				if (!isImageFile(photo))
-					throw new IllegalArgumentException("Only JPG/PNG allowed");
+	    User savedUser = userRepository.save(user);
 
-				try {
-					Files.createDirectories(Paths.get(uploadDir));
-					String filename = userId + "_" + System.currentTimeMillis()
-							+ getFileExtension(photo.getOriginalFilename());
-					Path filePath = Paths.get(uploadDir, filename);
-					photo.transferTo(filePath);
-					team.setProfilePhotoPath("/uploads/marketing/" + filename);
-				} catch (Exception e) {
-					logger.error("Photo upload failed for user: {}", team.getEmail(), e);
-					throw new RuntimeException("Photo upload failed", e);
-				}
-			}
-			marketingTeamRepository.save(team);
-		});
+	    // ---------- MARKETING TEAM TABLE ----------
+	    marketingTeamRepository.findByUser(user).ifPresent(team -> {
 
-		return savedUser;
+	        if (userData.containsKey("fullName"))
+	            team.setFullName((String) userData.get("fullName"));
+
+	        if (newPhone != null)
+	            team.setPhoneNumber(newPhone);
+
+	        if (userData.containsKey("email"))
+	            team.setEmail((String) userData.get("email"));
+
+	        if (userData.containsKey("age")) {
+	            Object ageObj = userData.get("age");
+	            if (ageObj instanceof Integer) {
+	                team.setAge((Integer) ageObj);
+	            } else if (ageObj instanceof String) {
+	                team.setAge(Integer.parseInt((String) ageObj));
+	            }
+	        }
+
+	        if (userData.containsKey("address"))
+	            team.setAddress((String) userData.get("address"));
+
+	        if (userData.containsKey("assignedRegion"))
+	            team.setAssignedRegion((String) userData.get("assignedRegion"));
+
+	        if (userData.containsKey("targetDistricts"))
+	            team.setTargetDistricts((String) userData.get("targetDistricts"));
+
+	        // ---------- PHOTO UPLOAD (FIXED) ----------
+	        MultipartFile photo = (MultipartFile) userData.get("photo");
+
+	        // ONLY if new photo is provided
+	        if (photo != null && !photo.isEmpty()) {
+
+	            if (photo.getSize() > 5 * 1024 * 1024)
+	                throw new IllegalArgumentException("Photo too large (max 5MB)");
+
+	            if (!isImageFile(photo))
+	                throw new IllegalArgumentException("Only JPG/PNG allowed");
+
+	            // Delete old photo ONLY now
+	            String oldPhotoPath = team.getProfilePhotoPath();
+	            if (oldPhotoPath != null) {
+	                try {
+	                    Path oldFile = Paths.get(
+	                            uploadDir,
+	                            oldPhotoPath.replace("/uploads/marketing/", "")
+	                    );
+	                    Files.deleteIfExists(oldFile);
+	                } catch (Exception e) {
+	                    logger.warn("Could not delete old photo for user {}", team.getEmail(), e);
+	                }
+	            }
+
+	            try {
+	                Files.createDirectories(Paths.get(uploadDir));
+	                String filename = userId + "_" + System.currentTimeMillis()
+	                        + getFileExtension(photo.getOriginalFilename());
+	                Path filePath = Paths.get(uploadDir, filename);
+
+	                photo.transferTo(filePath);
+	                team.setProfilePhotoPath("/uploads/marketing/" + filename);
+
+	            } catch (Exception e) {
+	                logger.error("Photo upload failed for user: {}", team.getEmail(), e);
+	                throw new RuntimeException("Photo upload failed", e);
+	            }
+	        }
+
+	        marketingTeamRepository.save(team);
+	    });
+
+	    return savedUser;
 	}
 
 	@Transactional
@@ -407,39 +427,45 @@ public class AdmiService {
 
 	@Transactional
 	public Modules updateModule(Integer moduleId, Map<String, Object> moduleData) {
-		Modules module = modulesRepository.findById(moduleId)
-				.orElseThrow(() -> new IllegalArgumentException("Module not found"));
+	    try {
+	        Modules module = modulesRepository.findById(moduleId)
+	                .orElseThrow(() -> new IllegalArgumentException("Module not found with ID: " + moduleId));
 
-		if (moduleData.containsKey("moduleName")) {
-			String name = ((String) moduleData.get("moduleName")).trim();
-			if (name.isEmpty())
-				throw new IllegalArgumentException("Module name cannot be empty");
-			module.setModuleName(name);
-		}
+	        if (moduleData.containsKey("moduleName")) {
+	            String name = ((String) moduleData.get("moduleName")).trim();
+	            if (name.isEmpty()) {
+	                throw new IllegalArgumentException("Module name cannot be empty");
+	            }
+	            module.setModuleName(name);
+	        }
 
-		if (moduleData.containsKey("description")) {
-			module.setDescription((String) moduleData.get("description"));
-		}
+	        if (moduleData.containsKey("description")) {
+	            module.setDescription((String) moduleData.get("description"));
+	        }
 
-		if (moduleData.containsKey("isActive")) {
-			Object val = moduleData.get("isActive");
-			if (val instanceof Boolean) {
-				module.setIsActive((Boolean) val);
-			} else {
-				throw new IllegalArgumentException("isActive must be boolean");
-			}
-		}
+	        if (moduleData.containsKey("isActive")) {
+	            Object val = moduleData.get("isActive");
+	            if (val instanceof Boolean) {
+	                module.setIsActive((Boolean) val);
+	            } else {
+	                throw new IllegalArgumentException("isActive must be a boolean value");
+	            }
+	        }
 
-		return modulesRepository.save(module);
+	        return modulesRepository.save(module);
+
+	    } catch (IllegalArgumentException e) {
+	        // Let this bubble up to controller → becomes 400 Bad Request
+	        throw e;
+
+	    } catch (Exception e) {
+	        // Any unexpected issue during save (constraint violation, DB down, etc.)
+	        logger.error("Unexpected error updating module id: {}", moduleId, e);
+	        throw new RuntimeException("Failed to update module", e);
+	    }
 	}
 
-	@Transactional
-	public void deleteModule(Integer moduleId) {
-		Modules module = modulesRepository.findById(moduleId)
-				.orElseThrow(() -> new IllegalArgumentException("Module not found"));
-
-		modulesRepository.delete(module);
-	}
+	
 
 	// ── Admin Profile ──────────────────────────────────────────────
 	@Transactional(readOnly = true)

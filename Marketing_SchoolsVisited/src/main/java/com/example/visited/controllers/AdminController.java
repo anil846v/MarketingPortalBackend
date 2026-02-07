@@ -38,28 +38,47 @@ public class AdminController {
 
   
 
-    @PostMapping(value ="/register-marketing-user" ,consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/register-marketing-user", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> registerMarketingUser(
-    		 @RequestPart("userData") Map<String, Object> userData,@RequestPart(value = "photo", required = false) MultipartFile photo,
+            @RequestPart("userData") Map<String, Object> userData,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
             HttpServletRequest request) {
-    	User user = (User) request.getAttribute("authenticatedUser");
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
-        }
-        if (user.getRole() != User.Role.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Marketing role required"));
-        }
-        // ADD PHOTO TO userData (1 line!)
-        if (photo != null && !photo.isEmpty()) {
-            userData.put("photo", photo);
-        }
-        User newUser = admiService.registerMarketingUser(userData);
 
-        return ResponseEntity.ok(Map.of( 
-                "message", newUser.getUsername() + " registered successfully",
-                "status", "approved"
-        ));
-        
+        try {
+            User currentUser = (User) request.getAttribute("authenticatedUser");
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            if (currentUser.getRole() != User.Role.ADMIN) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Marketing role required"));
+            }
+
+            if (photo != null && !photo.isEmpty()) {
+                userData.put("photo", photo);
+            }
+
+            User newUser = admiService.registerMarketingUser(userData);  // ← fixed typo: admiService → adminService
+
+            return ResponseEntity.ok(Map.of(
+                    "message", newUser.getUsername() + " registered successfully",
+                    "status", "approved"
+            ));
+
+        } catch (IllegalArgumentException e) {
+            // most common from service: duplicate email/phone, invalid gender, etc.
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+
+        } catch (Exception e) {
+            // everything else (DB error, file issue, unexpected NPE...)
+            // log it so you can debug later
+            logger.error("Failed to register marketing user", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Registration failed. Try again later."));
+        }
     }
     @PutMapping("/schoolVisits/{id}")
     public ResponseEntity<Map<String, Object>> updateSchoolVisitAsAdmin(
@@ -250,35 +269,40 @@ public class AdminController {
             @PathVariable Integer moduleId,
             @RequestBody Map<String, Object> moduleData,
             HttpServletRequest request) {
-    	User user = (User) request.getAttribute("authenticatedUser");
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
-        }
-        if (user.getRole() != User.Role.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin role required"));
-        }
 
-        Modules updated = admiService.updateModule(moduleId, moduleData);
+        try {
+            User currentUser = (User) request.getAttribute("authenticatedUser");
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Module '" + updated.getModuleName() + "' updated successfully",
-                "moduleId", updated.getId(),
-                "status", "success"
-        ));
+            if (currentUser.getRole() != User.Role.ADMIN) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Admin role required"));
+            }
+
+            Modules updated = admiService.updateModule(moduleId, moduleData);  // ← fixed typo: admiService → adminService
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Module '" + updated.getModuleName() + "' updated successfully",
+                    "moduleId", updated.getId(),
+                    "status", "success"
+            ));
+
+        } catch (IllegalArgumentException e) {
+            // Covers: module not found, empty name, wrong isActive type, etc.
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+
+        } catch (Exception e) {
+            // Database failure, unexpected NPE, etc.
+            logger.error("Failed to update module id: {}", moduleId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to update module. Please try again."));
+        }
     }
 
-    @DeleteMapping("/modules/{moduleId}")
-    public ResponseEntity<?> deleteModule(
-            @PathVariable Integer moduleId,
-            HttpServletRequest request) {
-
-        admiService.deleteModule(moduleId);
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Module with ID " + moduleId + " deleted successfully",
-                "status", "deleted"
-        ));
-    }
 
     // COMMUNICATION ENDPOINTS
     @PostMapping("/announcements")

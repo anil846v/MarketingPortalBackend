@@ -78,6 +78,17 @@ public class AuthService {
 	        }
 	        return token;
 	    }
+//	    public String generateToken(User user) {
+//	        // Generate a fresh token
+//	        String token = generateNewToken(user);
+//
+//	        // Save token without deleting old ones
+//	        saveToken(user, token);
+//
+//	        return token;
+//	    }
+
+	    
 
 	    private String generateNewToken(User user) {
 	        return Jwts.builder()
